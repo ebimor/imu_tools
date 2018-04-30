@@ -33,7 +33,7 @@ ImuFilterRos::ImuFilterRos(ros::NodeHandle nh, ros::NodeHandle nh_private):
   nh_private_(nh_private),
   initialized_(false)
 {
-  ROS_INFO ("Starting ImuFilter");
+  ROS_INFO ("Starting ImuFilter Madgwick");
 
   // **** get paramters
   if (!nh_private_.getParam ("stateless", stateless_))
@@ -61,6 +61,10 @@ ImuFilterRos::ImuFilterRos(ros::NodeHandle nh, ros::NodeHandle nh_private):
       }
       use_magnetic_field_msg_ = false;
   }
+
+
+  if (!nh_private_.getParam ("mag_declination", mag_declination_))
+     mag_declination_= -9.5;
 
   std::string world_frame;
   // Default should become false for next release
@@ -342,8 +346,10 @@ void ImuFilterRos::publishFilteredMsg(const ImuMsg::ConstPtr& imu_msg_raw)
   if(publish_debug_topics_)
   {
     geometry_msgs::Vector3Stamped rpy;
-    tf2::Matrix3x3(tf2::Quaternion(q1,q2,q3,q0)).getRPY(rpy.vector.x, rpy.vector.y, rpy.vector.z);
 
+    tf2::Matrix3x3(tf2::Quaternion(q1,q2,q3,q0)).getRPY(rpy.vector.x, rpy.vector.y, rpy.vector.z);
+    rpy.vector.z += (mag_declination_/180*3.14159);
+    //std::cout << "Mag declination = " << mag_declination_ << std::endl;
     rpy.header = imu_msg_raw->header;
     rpy_filtered_debug_publisher_.publish(rpy);
   }
